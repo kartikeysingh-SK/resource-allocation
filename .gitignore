@@ -1,0 +1,22 @@
+# Environment and credentials
+.env
+.env.local
+.env.*.local
+
+# Vercel build output
+.vercel
+
+# Operating System Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Log files
+*.log
+error_log
+
+# Composer & Node
+/vendor/
+/node_modules/
