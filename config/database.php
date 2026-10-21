@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+error_reporting(E_ALL & ~E_DEPRECATED);
+
 $host     = getenv('DB_HOST') ?: 'localhost';
 $port     = getenv('DB_PORT') ?: '3306';
 $dbname   = getenv('DB_NAME') ?: 'resource_allocation';
@@ -13,25 +15,30 @@ $pdoOptions = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-// Enable SSL for cloud MySQL providers (TiDB Cloud, Aiven, Railway)
+// Enable SSL for cloud MySQL providers (TiDB Cloud, Aiven, Railway) with PHP 8.1 - 8.5 compatibility
+$sslVerifyConst = defined('Pdo\\Mysql::ATTR_SSL_VERIFY_SERVER_CERT') ? \Pdo\Mysql::ATTR_SSL_VERIFY_SERVER_CERT : (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT') ? PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT : null);
+$sslCaConst     = defined('Pdo\\Mysql::ATTR_SSL_CA') ? \Pdo\Mysql::ATTR_SSL_CA : (defined('PDO::MYSQL_ATTR_SSL_CA') ? PDO::MYSQL_ATTR_SSL_CA : null);
+
 if ($host !== 'localhost' && $host !== '127.0.0.1') {
-    if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
-        $pdoOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+    if ($sslVerifyConst !== null) {
+        $pdoOptions[$sslVerifyConst] = false;
     }
-    $caPaths = [
-        '/etc/pki/tls/certs/ca-bundle.crt',
-        '/etc/ssl/certs/ca-certificates.crt',
-        'C:/xampp/apache/bin/curl-ca-bundle.crt',
-        'C:/xampp/php/extras/ssl/cacert.pem',
-    ];
-    foreach ($caPaths as $ca) {
-        if (file_exists($ca)) {
-            $pdoOptions[PDO::MYSQL_ATTR_SSL_CA] = $ca;
-            break;
+    if ($sslCaConst !== null) {
+        $caPaths = [
+            '/etc/pki/tls/certs/ca-bundle.crt',
+            '/etc/ssl/certs/ca-certificates.crt',
+            'C:/xampp/apache/bin/curl-ca-bundle.crt',
+            'C:/xampp/php/extras/ssl/cacert.pem',
+        ];
+        foreach ($caPaths as $ca) {
+            if (file_exists($ca)) {
+                $pdoOptions[$sslCaConst] = $ca;
+                break;
+            }
         }
-    }
-    if (!isset($pdoOptions[PDO::MYSQL_ATTR_SSL_CA]) && defined('PDO::MYSQL_ATTR_SSL_CA')) {
-        $pdoOptions[PDO::MYSQL_ATTR_SSL_CA] = true;
+        if (!isset($pdoOptions[$sslCaConst])) {
+            $pdoOptions[$sslCaConst] = true;
+        }
     }
 }
 
