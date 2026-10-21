@@ -13,6 +13,13 @@ $pdoOptions = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
+// Enable SSL certificate tolerance for cloud MySQL providers (Aiven, TiDB, Railway)
+if ($host !== 'localhost' && $host !== '127.0.0.1') {
+    if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
+        $pdoOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+    }
+}
+
 try {
     // First attempt direct connection to the database
     $pdo = new PDO("mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4", $username, $password, $pdoOptions);
@@ -143,6 +150,18 @@ try {
         ");
     }
 } catch (PDOException $e) {
+    if (getenv('VERCEL') || !empty($_ENV['VERCEL']) || getenv('AWS_LAMBDA_FUNCTION_NAME')) {
+        http_response_code(503);
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<!DOCTYPE html><html><head><title>Database Configuration Required</title><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0d1117;color:#e6edf3;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box;}.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:32px;max-width:600px;width:100%;box-shadow:0 15px 35px rgba(0,0,0,0.4);}h2{color:#f85149;margin-top:0;}code{background:#21262d;padding:3px 8px;border-radius:6px;font-family:monospace;color:#7ee787;}.step{background:#21262d;border-left:4px solid #238636;padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0;}</style></head><body>';
+        echo '<div class="card">';
+        echo '<h2>⚡ Vercel Deployment Active</h2>';
+        echo '<p>Your RTRAE application is live on Vercel! To connect it to your database, add these <strong>Environment Variables</strong> in your Vercel Project Settings:</p>';
+        echo '<div class="step"><code>DB_HOST</code> &bull; <code>DB_PORT</code> &bull; <code>DB_NAME</code> &bull; <code>DB_USER</code> &bull; <code>DB_PASS</code></div>';
+        echo '<p style="color:#8b949e;font-size:13px;word-break:break-all;"><strong>Connection notice:</strong> ' . htmlspecialchars($e->getMessage()) . '</p>';
+        echo '</div></body></html>';
+        exit;
+    }
     http_response_code(500);
     die("Database setup failed: " . htmlspecialchars($e->getMessage()));
 }
