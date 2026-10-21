@@ -13,10 +13,25 @@ $pdoOptions = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-// Enable SSL certificate tolerance for cloud MySQL providers (Aiven, TiDB, Railway)
+// Enable SSL for cloud MySQL providers (TiDB Cloud, Aiven, Railway)
 if ($host !== 'localhost' && $host !== '127.0.0.1') {
     if (defined('PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT')) {
         $pdoOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+    }
+    $caPaths = [
+        '/etc/pki/tls/certs/ca-bundle.crt',
+        '/etc/ssl/certs/ca-certificates.crt',
+        'C:/xampp/apache/bin/curl-ca-bundle.crt',
+        'C:/xampp/php/extras/ssl/cacert.pem',
+    ];
+    foreach ($caPaths as $ca) {
+        if (file_exists($ca)) {
+            $pdoOptions[PDO::MYSQL_ATTR_SSL_CA] = $ca;
+            break;
+        }
+    }
+    if (!isset($pdoOptions[PDO::MYSQL_ATTR_SSL_CA]) && defined('PDO::MYSQL_ATTR_SSL_CA')) {
+        $pdoOptions[PDO::MYSQL_ATTR_SSL_CA] = true;
     }
 }
 
