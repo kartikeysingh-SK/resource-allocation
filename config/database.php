@@ -21,20 +21,15 @@ if ($host !== 'localhost' && $host !== '127.0.0.1') {
 }
 
 try {
-    // First attempt direct connection to the database
-    $pdo = new PDO("mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4", $username, $password, $pdoOptions);
-} catch (PDOException $dbErr) {
-    // Fallback: connect without dbname and create it (e.g. for initial local XAMPP setup)
     try {
+        // First attempt direct connection to the database
+        $pdo = new PDO("mysql:host={$host};port={$port};dbname={$dbname};charset=utf8mb4", $username, $password, $pdoOptions);
+    } catch (PDOException $dbErr) {
+        // Fallback: connect without dbname and create it (e.g. for initial local XAMPP setup)
         $pdo = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $username, $password, $pdoOptions);
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbname}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         $pdo->exec("USE `{$dbname}`");
-    } catch (PDOException $createErr) {
-        throw $dbErr;
     }
-}
-
-try {
 
     $pdo->exec("
         CREATE TABLE IF NOT EXISTS users (
